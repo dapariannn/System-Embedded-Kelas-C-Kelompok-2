@@ -2,17 +2,19 @@
 //RFID
 #include <SPI.h>
 #include <MFRC522.h>
-#include <Servo.h>
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 16, 2);
  
 #define SS_PIN 10
 #define RST_PIN 9
-#define LED_G 4 //define green LED pin
 #define LED_R 5 //define red LED
 #define BUZZER 2 //buzzer pin
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
-Servo myServo; //define servo name
+
+int led = 13;                // the pin that the LED is atteched to
+int sensor = 7;              // the pin that the sensor is atteched to
+int state = LOW;             // by default, no motion detected
+int val = 0;                 // variable to store the sensor status (value)
  
 void setup() 
 {
@@ -20,18 +22,43 @@ void setup()
   SPI.begin();      // Initiate  SPI bus
   lcd.begin();
   mfrc522.PCD_Init();   // Initiate MFRC522
-  myServo.attach(3); //servo pin
-  myServo.write(0); //servo start position
-  pinMode(LED_G, OUTPUT);
   pinMode(LED_R, OUTPUT);
   pinMode(BUZZER, OUTPUT);
   noTone(BUZZER);
   Serial.println("Put your card to the reader...");
   Serial.println();
+  pinMode(led, OUTPUT);      // initalize LED as an output
+  pinMode(sensor, INPUT);    // initialize sensor as an input
 
 }
 void loop() 
 {
+  val = digitalRead(sensor);   // read sensor value
+  if (val == HIGH) {           // check if the sensor is HIGH
+     
+    
+    if (state == LOW) {
+      Serial.println("Motion detected!"); 
+      state = HIGH;    
+      digitalWrite(LED_R, HIGH);
+      tone(BUZZER, 300);
+      delay(1000);
+      digitalWrite(LED_R, LOW);
+      noTone(BUZZER);
+      lcd.setCursor(0, 0);
+      lcd.print("Illegal Access");
+      lcd.setCursor(0, 1);
+      lcd.print("Thieft");
+         // update variable state to HIGH
+    }
+  } 
+  else {
+      
+      if (state == HIGH){
+        Serial.println("Motion stopped!");
+        state = LOW;       // update variable state to LOW
+    }
+  }
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) 
   {
@@ -58,34 +85,47 @@ void loop()
   content.toUpperCase();
   if (content.substring(1) == "53 A7 2B 95") //change here the UID of the card/cards that you want to give access
   {
-    Serial.println("Authorized access");
+    Serial.println("Access Approved");
     Serial.println();
     delay(500);
-    digitalWrite(LED_G, HIGH);
     tone(BUZZER, 1000);
     delay(300);
     noTone(BUZZER);
-    myServo.write(180);
     delay(500);
-    myServo.write(0);
-    digitalWrite(LED_G, LOW);
     lcd.setCursor(0, 0);
-    lcd.print("Authorized access");
+    lcd.print("Legal Access");
     lcd.setCursor(0, 1);
-    lcd.print("53 A7 2B 95");
+    lcd.print("Owner");
+    delay(3000);
+  }
+
+  else if (content.substring(1) == "53 4D 1D 98") //change here the UID of the card/cards that you want to give access
+  {
+    Serial.println("Access Approved");
+    Serial.println();
+    delay(500);
+    tone(BUZZER, 1000);
+    delay(300);
+    noTone(BUZZER);
+    delay(500);
+    lcd.setCursor(0, 0);
+    lcd.print("Legal Access");
+    lcd.setCursor(0, 1);
+    lcd.print("Owner");
+    delay(5000);
   }
   
- else   {
-    Serial.println(" Access denied");
-    digitalWrite(LED_R, HIGH);
-    tone(BUZZER, 300);
-    delay(1000);
-    digitalWrite(LED_R, LOW);
-    noTone(BUZZER);
-    lcd.setCursor(0, 0);
-    lcd.print("Illegal access");
-    lcd.setCursor(0, 1);
-    lcd.print("Error");
-  }
+//  else   {
+//     Serial.println(" Access denied");
+//     digitalWrite(LED_R, HIGH);
+//     tone(BUZZER, 300);
+//     delay(1000);
+//     digitalWrite(LED_R, LOW);
+//     noTone(BUZZER);
+//     lcd.setCursor(0, 0);
+//     lcd.print("Illegal Access");
+//     lcd.setCursor(0, 1);
+//     lcd.print("Error");
+//   }
 } 
 
